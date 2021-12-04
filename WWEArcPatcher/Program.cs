@@ -1,6 +1,7 @@
 ﻿using Ganss.Excel;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 
 namespace WWEArcPatcher
@@ -64,7 +65,7 @@ namespace WWEArcPatcher
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.WriteLine("WWE ARC Tool @Deftones");
-            if(args.Length<1)
+            if (args.Length < 1)
             {
                 Console.WriteLine("Args yok");
             }
@@ -73,18 +74,21 @@ namespace WWEArcPatcher
                 string input = args[0];
                 if (input.EndsWith("Chunk0.arc"))
                 {
+                    byte[] nullEndBytes = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
                     byte[] chunkData = File.ReadAllBytes(input);
                     Console.WriteLine("ARC CRC offset tablosu dumplanıyor...");
-                    foreach (string read in Directory.EnumerateFiles(Path.GetDirectoryName(input) + "\\mod", "*.pac", SearchOption.AllDirectories))
+                    foreach (string read in Directory.EnumerateFiles(Path.GetDirectoryName(input) + Path.DirectorySeparatorChar + "mod", "*.pac", SearchOption.AllDirectories))
                     {
-                        string file = read.Replace("\\mod\\", "\\");
+                        string file = read.Replace(Path.DirectorySeparatorChar.ToString() + "mod" + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString());
                         FileStream stream = new FileStream(file, FileMode.Open, FileAccess.Read);
                         BinaryReader BinaryReader = new BinaryReader(stream);
                         stream.Seek(4096L, SeekOrigin.Begin);
                         byte[] CRCByte = BinaryReader.ReadBytes(96);
+                        CRCByte = CRCByte.Reverse().SkipWhile(x => x == 0).Reverse().ToArray();
                         string CRC = BitConverter.ToString(CRCByte);
+                        Console.WriteLine(file);
                         Int32 offset = chunkData.Locate(CRCByte)[0];
-                        table.Add(new CRCTable { File = read.Split("\\mod\\")[1], Offset = offset, CRC = CRC });
+                        table.Add(new CRCTable { File = read.Split(Path.DirectorySeparatorChar + "mod" + Path.DirectorySeparatorChar)[1], Offset = offset, CRC = CRC });
                         BinaryReader.Close();
                         stream.Close();
                     }
@@ -95,20 +99,20 @@ namespace WWEArcPatcher
                 {
                     Console.WriteLine("Modlanmış dosyalara göre ARC dosyası tekrar oluşturuluyor...");
                     var CRCList = new ExcelMapper("ARC_Offsets.xlsx").Fetch<CRCTable>();
-                    FileStream stream = new FileStream(Path.GetDirectoryName(input) + "\\Chunk0.arc", FileMode.Open, FileAccess.ReadWrite);
+                    FileStream stream = new FileStream(Path.GetDirectoryName(input) + Path.DirectorySeparatorChar + "Chunk0.arc", FileMode.Open, FileAccess.ReadWrite);
                     foreach (CRCTable table in CRCList)
                     {
-                        if (!File.Exists(input+"\\"+table.File)) continue;
-                        Console.WriteLine(table.File +" = "+ table.Offset);
+                        if (!File.Exists(input + Path.DirectorySeparatorChar + table.File)) continue;
+                        Console.WriteLine(table.File + " = " + table.Offset);
                         //BinaryWriter BinaryWriter = new BinaryWriter(stream);
-                        stream.Seek(table.Offset,SeekOrigin.Begin);
-                        FileStream stream2 = new FileStream(input+"\\"+table.File, FileMode.Open, FileAccess.Read);
+                        stream.Seek(table.Offset, SeekOrigin.Begin);
+                        FileStream stream2 = new FileStream(input + Path.DirectorySeparatorChar + table.File, FileMode.Open, FileAccess.Read);
                         BinaryReader BinaryReader2 = new BinaryReader(stream2);
                         stream2.Seek(4096L, SeekOrigin.Begin);
                         byte[] NewCRCByte = BinaryReader2.ReadBytes(96);
                         BinaryReader2.Close();
                         stream2.Close();
-                        stream.Write(NewCRCByte,0,96);
+                        stream.Write(NewCRCByte, 0, NewCRCByte.Length);
                     }
                     stream.Close();
                     Console.WriteLine("ARC dosyası patchlendi.");
