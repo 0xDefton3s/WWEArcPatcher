@@ -82,6 +82,8 @@ namespace WWEArcPatcher
                     foreach (string read in Directory.EnumerateFiles(Path.GetDirectoryName(input) + Path.DirectorySeparatorChar + "mod", "*.pac", SearchOption.AllDirectories))
                     {
                         string file = read.Replace(Path.DirectorySeparatorChar.ToString() + "mod" + Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString());
+                        string fName = read.Split(Path.DirectorySeparatorChar + "mod" + Path.DirectorySeparatorChar)[1];
+                        if (fName == "pac\\menu\\win\\Assets\\wwe19_singleread\\texture\\ssface\\ltag_typea_win.pac" || fName == "pac\\menu\\win\\Assets\\wwe19_singleread\\texture\\ssface\\ltag_typeb_win.pac") continue;
                         FileStream stream = new FileStream(file, FileMode.Open, FileAccess.Read);
                         BinaryReader BinaryReader = new BinaryReader(stream);
                         stream.Seek(4096L, SeekOrigin.Begin);
@@ -90,7 +92,7 @@ namespace WWEArcPatcher
                         string CRC = BitConverter.ToString(CRCByte);
                         Console.WriteLine(file);
                         Int32 offset = chunkData.Locate(CRCByte)[0];
-                        table.Add(new CRCTable { File = read.Split(Path.DirectorySeparatorChar + "mod" + Path.DirectorySeparatorChar)[1], Offset = offset, OffsetSize= CRCByte.Length , CRC = CRC });
+                        table.Add(new CRCTable { File = fName, Offset = offset, OffsetSize= CRCByte.Length , CRC = CRC });
                         BinaryReader.Close();
                         stream.Close();
                     }
