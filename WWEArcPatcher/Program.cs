@@ -12,6 +12,8 @@ namespace WWEArcPatcher
         public string File { get; set; }
         [Column("Offset")]
         public Int32 Offset { get; set; }
+        [Column("OffsetSize")]
+        public int OffsetSize { get; set; }
         [Column("CRC")]
         public string CRC { get; set; }
     }
@@ -88,7 +90,7 @@ namespace WWEArcPatcher
                         string CRC = BitConverter.ToString(CRCByte);
                         Console.WriteLine(file);
                         Int32 offset = chunkData.Locate(CRCByte)[0];
-                        table.Add(new CRCTable { File = read.Split(Path.DirectorySeparatorChar + "mod" + Path.DirectorySeparatorChar)[1], Offset = offset, CRC = CRC });
+                        table.Add(new CRCTable { File = read.Split(Path.DirectorySeparatorChar + "mod" + Path.DirectorySeparatorChar)[1], Offset = offset, OffsetSize= CRCByte.Length , CRC = CRC });
                         BinaryReader.Close();
                         stream.Close();
                     }
@@ -109,7 +111,7 @@ namespace WWEArcPatcher
                         FileStream stream2 = new FileStream(input + Path.DirectorySeparatorChar + table.File, FileMode.Open, FileAccess.Read);
                         BinaryReader BinaryReader2 = new BinaryReader(stream2);
                         stream2.Seek(4096L, SeekOrigin.Begin);
-                        byte[] NewCRCByte = BinaryReader2.ReadBytes(96);
+                        byte[] NewCRCByte = BinaryReader2.ReadBytes(table.OffsetSize);
                         BinaryReader2.Close();
                         stream2.Close();
                         stream.Write(NewCRCByte, 0, NewCRCByte.Length);
